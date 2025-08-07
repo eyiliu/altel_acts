@@ -215,7 +215,7 @@ namespace altel{
     }
 
     bool hasMatchedMeasHit() const{
-      if(FH){
+      if(MM){
         return true;
       }
       else{
