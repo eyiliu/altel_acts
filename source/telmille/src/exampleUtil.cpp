@@ -59,6 +59,7 @@ GblDetectorLayer::GblDetectorLayer(const std::string aName,
 }
 
 GblDetectorLayer::~GblDetectorLayer() {
+  
 }
 
 /// Print GblDetectorLayer.
@@ -122,10 +123,10 @@ Matrix<double, 3, 6> GblDetectorLayer::getRigidBodyDerGlobal(
 		Eigen::Vector3d& position, Eigen::Vector3d& direction) const {
 // lever arms (for rotations)
 	Vector3d dist = position;
-// dr/dg (residual vs measurement, 1-tdir*ndir^t/tdir*ndir)
+// dr/dm (residual vs measurement, 1-tdir*ndir^t/tdir*ndir)
 	Matrix3d drdm = Matrix3d::Identity()
 			- (direction * ndir.transpose()) / (direction.transpose() * ndir);
-// dg/db (measurement vs 6 rigid body parameters, global system)
+// dm/dg (measurement vs 6 rigid body parameters, global system)
 	Matrix<double, 3, 6> dmdg = Matrix<double, 3, 6>::Zero();
         dmdg<<
           1., 0., 0.,  0.,     -dist(2), dist(1),

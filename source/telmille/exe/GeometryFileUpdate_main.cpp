@@ -137,6 +137,10 @@ int main(int argc, char *argv[]) {
         else if(index==3){
           js_det["rotation"]["z"]=result + js_det["rotation"]["z"].GetDouble();
         }
+        else if(index==4){
+          js_det["rotation"]["x"]=result + js_det["rotation"]["x"].GetDouble();
+        }
+
         else{
           std::cerr<< "something wrong, index is not found\n";
           throw;

@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
                               {"resolDetector", required_argument, NULL, 's'},
                               {"maxEventNumber", required_argument, NULL, 'm'},
                               {"maxTrackNumber", required_argument, NULL, 'n'},
-                             {0, 0, 0, 0}};
+                              {0, 0, 0, 0}};
 
   std::vector<std::string> rawFilePathCol;
   std::string inputGeometryFile_path;

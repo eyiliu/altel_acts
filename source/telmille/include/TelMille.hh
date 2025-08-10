@@ -6,11 +6,6 @@
 #include <map>
 #include "myrapidjson.h"
 
-using IntVec = std::vector<int>;
-using FloatVec = std::vector<float>;
-using DoubleVec = std::vector<double>;
-using StringVec = std::vector<std::string>;
-
 
 class GblDetectorLayer;
 
@@ -49,16 +44,19 @@ public:
                        std::vector<double>& residYFit);
 
   static std::unique_ptr<GblDetectorLayer> CreateLayerSit_UVonXY(const std::string& aName, unsigned int layer,
-                                                                     double xPos, double yPos,
-                                                                     double zPos, double thickness,
-                                                                     double uAngle, double uRes,
-                                                                     double vAngle, double vRes);
+                                                                 double xPos, double yPos,
+                                                                 double zPos, double thickness,
+                                                                 double uAngle, double uRes,
+                                                                 double vAngle, double vRes);
 
-  static std::unique_ptr<GblDetectorLayer> CreateLayerSit_UVonYZ(const std::string aName, unsigned int layer,
-                                                                    double xPos, double yPos,
-                                                                    double zPos, double thickness,
-                                                                    double uAngle, double uRes,
-                                                                    double vAngle, double vRes);
+
+  static std::unique_ptr<GblDetectorLayer> CreateLayerSit_UVonAny(const std::string& aName, unsigned int layer,
+                                                                  double xPos, double yPos,
+                                                                  double zPos, double thickness,
+                                                                  double uAngle, double uRes,
+                                                                  double vAngle, double vRes,
+                                                                  double rotX, double rotY);
+
 
 private:
 
@@ -81,5 +79,3 @@ private:
   std::map<size_t, std::unique_ptr<GblDetectorLayer>> m_dets;
 };
 }
-
-using EUTelMille = altel::TelMille;
