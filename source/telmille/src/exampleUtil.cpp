@@ -59,7 +59,6 @@ GblDetectorLayer::GblDetectorLayer(const std::string aName,
 }
 
 GblDetectorLayer::~GblDetectorLayer() {
-  
 }
 
 /// Print GblDetectorLayer.
@@ -123,10 +122,10 @@ Matrix<double, 3, 6> GblDetectorLayer::getRigidBodyDerGlobal(
 		Eigen::Vector3d& position, Eigen::Vector3d& direction) const {
 // lever arms (for rotations)
 	Vector3d dist = position;
-// dr/dm (residual vs measurement, 1-tdir*ndir^t/tdir*ndir)
+// dr/dg (residual vs measurement, 1-tdir*ndir^t/tdir*ndir)
 	Matrix3d drdm = Matrix3d::Identity()
 			- (direction * ndir.transpose()) / (direction.transpose() * ndir);
-// dm/dg (measurement vs 6 rigid body parameters, global system)
+// dg/db (measurement vs 6 rigid body parameters, global system)
 	Matrix<double, 3, 6> dmdg = Matrix<double, 3, 6>::Zero();
         dmdg<<
           1., 0., 0.,  0.,     -dist(2), dist(1),
@@ -142,6 +141,7 @@ Matrix<double, 3, 6> GblDetectorLayer::getRigidBodyDerGlobal(
 // drl/dg (local residuals vs rigid body parameters)
 	return global2meas * drdm * dmdg; //  drlm/dg in world system   // dr/db in meas system? (global2meas does not consider center offset)
  }
+
 
 /// Get rigid body derivatives in local (alignment) frame (rotated in measurement plane).
 /**
@@ -203,6 +203,118 @@ Matrix<double, 2, 6> GblDetectorLayer::getRigidBodyDerLocal_mod(
         //Note: block<2,2>, assuming meas in-plane rotation on align system
 	return local2meas.block<2, 2>(0, 0) * drdb; // drlm/dg in DetectorLayer-local-align system//
 }
+
+
+//Assuming rotation around original local x around alpha, --> orignal local y around beta --> original local z around gamma
+//The new rotation matrix is R * R_z(gamma) * R_y(beta) * R_x(gamma) (R * rotation(x) represents rotation around the new axis by x)
+/*
+     // The delta translation
+    Eigen::Vector3d deltaCenter =
+        deltaAlignmentParam.segment<3>(0);
+    // The delta Euler angles
+    Eigen::Vector3d deltaEulerAngles =
+        deltaAlignmentParam.segment<3>(3);
+
+    const Acts::Vector3 newCenter = oldCenter + deltaCenter;
+    Eigen::Transform3d newTransform = oldTransform;
+    newTransform.translation() = newCenter;
+   
+    newTransform *=
+        Eigen::AngleAxis3(deltaEulerAngles(2), Acts::Vector3::UnitZ());
+    newTransform *=
+        Eigen::AngleAxis3(deltaEulerAngles(1), Acts::Vector3::UnitY());
+    newTransform *=
+        Eigen::AngleAxis3(deltaEulerAngles(0), Acts::Vector3::UnitX());
+*/
+
+
+Matrix<double, 2, 6> GblDetectorLayer::getRigidBodyDerLocal_ai(
+  Eigen::Vector3d& position, Eigen::Vector3d& direction) const {
+
+  //Get the derivatives of local x axis, local y axis , local z axis to rotation parameters
+  Matrix<double, 3, 3> matrix1;
+  matrix1.col(0) = Eigen::Vector3d(0, 0, 0);
+  matrix1.col(1) = Eigen::Vector3d(0, 0, -1);
+  matrix1.col(2) = Eigen::Vector3d(0, 1, 0);
+
+  Matrix<double, 3, 3> matrix2;
+  matrix2.col(0) = Eigen::Vector3d(0, 0, 1);
+  matrix2.col(1) = Eigen::Vector3d(0, 0, 0);
+  matrix2.col(2) = Eigen::Vector3d(-1, 0, 0);
+  
+  Matrix<double, 3, 3> matrix3;
+  matrix3.col(0) = Eigen::Vector3d(0, -1, 0);
+  matrix3.col(1) = Eigen::Vector3d(1, 0, 0);
+  matrix3.col(2) = Eigen::Vector3d(0, 0, 0);
+
+  Matrix<double, 3, 3> rotationMatrix;
+  rotationMatrix.col(0) = udir;
+  rotationMatrix.col(1) = vdir;
+  rotationMatrix.col(2) = ndir;
+
+  Matrix<double, 3, 3> localXAxisToRotation = rotationMatrix*matrix1; 
+  Matrix<double, 3, 3> localYAxisToRotation = rotationMatrix*matrix2; 
+  Matrix<double, 3, 3> localZAxisToRotation = rotationMatrix*matrix3; 
+
+  /*
+  If the orignal rotation matrix is [cosu cosv 0]
+                                    [sinu sinv 0]
+				    [0    0    1]
+				    then,
+       localXAxisToRotation = [ 0  0  cosv ]
+                              [ 0  0  sinv ]
+			      [ 0 -1   0   ] 
+
+       localYAxisToRotation = [ 0  0 -cosU ]
+                              [ 0  0 -sinU ]
+			      [ 1  0   0   ]
+  
+       localZAxisToRotation = [-cosv cosU 0]
+                              [-sinv sinU 0]
+			      [ 0  0   0   ]
+  */
+
+  Eigen::Vector3d dist = position - center;
+  double directionInX = udir.dot(direction);
+  double directionInY = vdir.dot(direction);
+  double directionInZ = ndir.dot(direction);
+
+  Matrix<double, 1, 6> localXToAlignmentParameters = Matrix<double, 1, 6>::Zero();
+  Matrix<double, 1, 6> localYToAlignmentParameters = Matrix<double, 1, 6>::Zero();
+  
+  localXToAlignmentParameters.block<1,3>(0,0) = -1.0 * udir.transpose() + directionInX/directionInZ*ndir.transpose();
+  localXToAlignmentParameters.block<1,3>(0,3) = dist.transpose()*localXAxisToRotation - directionInX/directionInZ*dist.transpose()*localZAxisToRotation;  
+  
+  localYToAlignmentParameters.block<1,3>(0,0) = -1.0 * vdir.transpose() + directionInY/directionInZ*ndir.transpose();
+  localYToAlignmentParameters.block<1,3>(0,3) = dist.transpose()*localYAxisToRotation - directionInY/directionInZ*dist.transpose()*localZAxisToRotation;  
+ 
+  Matrix<double, 2, 6> localToAlignmentParameters;
+  localToAlignmentParameters.row(0) = localXToAlignmentParameters;
+  localToAlignmentParameters.row(1) = localYToAlignmentParameters;
+
+  /*
+  v = u + 90 
+  cosv = cos(u + π/2) = -sinu
+  sinv = sin(u + π/2) = cosu
+   */
+
+  /*
+   -cosu, -sinu, directionInX/directionInZ, 
+   directionInX/directionInZ*(dist(0)*cosv + dist(1)*sinv),  
+   -dist(2) -directionInX/directionInZ* (dist(0)*cosu + dist(1)sinu),  
+   dist(0)cosv + dist(1)sinv   // dist(1)cosu - dist(0)sinu
+  
+   -cosv, -sinv, directionInY/directionInZ, 
+   dist(2) + directionInY/directionInZ*(dist(0)*cosv + dist(1)*sinv), 
+   -directionInY/directionInZ* (dist(0)*cosu + dist(1)sinu),  
+   -(dist(0)cosu + dist(1)sinu)  // dist(1)cosv - dist(0)sinv  
+  */
+
+  return localToAlignmentParameters;
+}
+
+
+
 
 
 /// Get transformation for rigid body derivatives from global to local (alignment) system.
