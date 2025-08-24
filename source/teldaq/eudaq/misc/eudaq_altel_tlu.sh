@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 
-# SOURCE_DIR=/home/teleuser/tmp/altel_eudaq
-BIN_DIR=/home/HEPuser/WorkSpace/DAQSoftware/altel_acts/INSTALL/bin
+SOURCE_DIR=/home/user/workspace/altel_acts
+
+BIN_DIR=/home/user/workspace/altel_acts/INSTALL/bin
 
 MY_IP=localhost
 
-#cp  $SOURCE_DIR/source/eudaq/misc/* /tmp
-#cp  $SOURCE_DIR/source/lib/misc/*   /tmp
-
-cp /home/HEPuser/WorkSpace/DAQSoftware/altel_acts/source/teldaq/eudaq/misc/* /tmp
+cp $SOURCE_DIR/source/teldaq/eudaq/misc/* /tmp
 
 killall -q xterm
 
@@ -19,8 +17,9 @@ sleep 1
 xterm -T "RUN" -e "$BIN_DIR/euRun" &
 sleep 1
 
+
 sleep 1
-xterm -T "Monitor" -e "$BIN_DIR/StdEventMonitor -t StdEventMonitor -r tcp://$MY_IP:44000 -rs" &
+xterm -T "Monitor" -e "/home/user/workspace/eudaq/bin/StdEventMonitor -t StdEventMonitor -r tcp://$MY_IP:44000 -rs" &
 xterm -T "Collector" -e "$BIN_DIR/euCliCollector -n TriggerIDSyncDataCollector -t one -r tcp://$MY_IP:44000" &
 sleep 1
 
